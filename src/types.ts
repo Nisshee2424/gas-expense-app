@@ -20,7 +20,7 @@ export interface Transaction {
 export interface Item {
 	id: number;
 	name: string;
-	category_id: number;
+	category_id?: number;  // フロントエンドでは使用しないためオプショナルに変更
 }
 
 export interface Category {

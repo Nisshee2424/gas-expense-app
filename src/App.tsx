@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { GoogleLogin, type CredentialResponse } from '@react-oauth/google';
 import { jwtDecode } from "jwt-decode";
 import { ProgressSpinner } from 'primereact/progressspinner';
@@ -7,8 +7,7 @@ import { Layout } from './components/Layout';
 import { HomePage } from './pages/HomePage';
 import { MonthlyPage } from './pages/MonthlyPage';
 import { AnnualPage } from './pages/AnnualPage';
-import { getItems } from './api/client';
-import type { Item } from './types';
+import { items } from './constants/items';
 
 // pull request練習用のコメント
 
@@ -34,8 +33,7 @@ function App() {
     return localStorage.getItem('auth_token') || '';
   });
   const [activePage, setActivePage] = useState<PageType>('home');
-  const [items, setItems] = useState<Item[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // ログイン成功時
@@ -50,29 +48,10 @@ function App() {
     }
   };
 
-  // トークンセット後にマスタ取得
-  useEffect(() => {
-    if (token) {
-      fetchMasterData();
-    }
-  }, [token]);
-
-  const fetchMasterData = async () => {
-    setLoading(true);
-    try {
-      const fetchedItems = await getItems();
-      setItems(fetchedItems || []);
-    } catch (e: any) {
-      setError('マスタデータ取得エラー: ' + e.message);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleLogout = () => {
     setUser(null);
     setToken('');
-    setItems([]);
     setActivePage('home');
     // localStorageからも削除
     localStorage.removeItem('auth_token');
@@ -121,7 +100,7 @@ function App() {
       {error && <div className="p-3 bg-red-100 text-red-700 border-round mb-3">{error}</div>}
 
       {!loading && activePage === 'home' && <HomePage items={items} token={token} />}
-      {!loading && activePage === 'monthly' && <MonthlyPage items={items} token={token} />}
+      {!loading && activePage === 'monthly' && <MonthlyPage token={token} />}
       {!loading && activePage === 'annual' && <AnnualPage token={token} />}
     </Layout>
   );

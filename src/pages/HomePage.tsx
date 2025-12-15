@@ -13,6 +13,7 @@ import { Toast } from 'primereact/toast';
 
 import { createTransaction, deleteTransaction, getRecentTransactions, updateTransaction } from '../api/client';
 import type { Item, Transaction } from '../types';
+import { items } from '../constants/items';
 
 interface HomePageProps {
 	items: Item[];
@@ -20,27 +21,6 @@ interface HomePageProps {
 }
 
 export const HomePage: React.FC<HomePageProps> = ({ token }) => {
-	// 費目の定数定義
-	const items = [
-		{ id: 1, name: '食費' },
-		{ id: 2, name: 'スイーツ費' },
-		{ id: 3, name: '日用品費' },
-		{ id: 4, name: '被服費' },
-		{ id: 5, name: '美容費' },
-		{ id: 6, name: '交通費' },
-		{ id: 7, name: '教育費' },
-		{ id: 8, name: '医療費' },
-		{ id: 9, name: '雑費' },
-		{ id: 10, name: '外食費' },
-		{ id: 11, name: 'ジム費' },
-		{ id: 12, name: '趣味費' },
-		{ id: 13, name: '交際費' },
-		{ id: 14, name: '旅行費' },
-		{ id: 15, name: '特別費' },
-		{ id: 16, name: '住居費' },
-		{ id: 17, name: '水道光熱費' },
-		{ id: 18, name: '保険料' }
-	];
 	// 新規登録用
 	const [date, setDate] = useState<Date>(new Date());
 	const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
@@ -61,9 +41,11 @@ export const HomePage: React.FC<HomePageProps> = ({ token }) => {
 	const [notification, setNotification] = useState<string | null>(null);
 
 	const toast = useRef<Toast>(null);
+	const hasFetched = useRef(false);
 
 	useEffect(() => {
-		if (token) {
+		if (token && !hasFetched.current) {
+			hasFetched.current = true;
 			fetchRecent();
 		}
 	}, [token]);
@@ -300,9 +282,6 @@ export const HomePage: React.FC<HomePageProps> = ({ token }) => {
 						<Column field="item_id" header="費目" body={(rowData) => getItemName(rowData.item_id)} />
 						<Column field="note" header="品目" />
 						<Column field="amount" header="金額" body={(rowData) => `¥${Number(rowData.amount).toLocaleString()}`} />
-						<Column body={(rowData) => (
-							<Button icon="pi pi-pencil" text severity="info" onClick={() => openEditDialog(rowData)} />
-						)} style={{ width: '40px' }} />
 					</DataTable>
 				</Card>
 			</div>
@@ -314,7 +293,7 @@ export const HomePage: React.FC<HomePageProps> = ({ token }) => {
 				onHide={() => setEditDialogVisible(false)}
 				style={{ width: '90vw', maxWidth: '500px' }}
 			>
-				<div className="field">
+				<div className="field mt-3">
 					<label className="block mb-2">日付</label>
 					<Calendar value={editDate} onChange={(e) => setEditDate(e.value as Date)} showIcon dateFormat="yy/mm/dd" className="w-full" />
 				</div>
