@@ -14,11 +14,17 @@ import { ColumnGroup } from 'primereact/columngroup';
 import { Row } from 'primereact/row';
 
 import { getMonthlyTransactions, updateTransaction, deleteTransaction } from '../api/client';
-import type { Item, Transaction } from '../types';
+import type { Transaction } from '../types';
+import { items } from '../constants/items';
+
+// 曜日を日本語で返すヘルパー関数
+const getDayLabel = (date: Date) => {
+  const days = ['日', '月', '火', '水', '木', '金', '土'];
+  return days[date.getDay()];
+};
 
 interface MonthlyPageProps {
-	items: Item[];
-	token: string;
+  token: string;
 }
 
 interface CategorySummary {
@@ -27,7 +33,7 @@ interface CategorySummary {
 	amount: number;
 }
 
-export const MonthlyPage: React.FC<MonthlyPageProps> = ({ items, token }) => {
+export const MonthlyPage: React.FC<MonthlyPageProps> = ({ token }) => {
 	const [date, setDate] = useState<Date>(new Date());
 	const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
 	const [loading, setLoading] = useState(false);
@@ -41,9 +47,11 @@ export const MonthlyPage: React.FC<MonthlyPageProps> = ({ items, token }) => {
 	const [editAmount, setEditAmount] = useState<number>(0);
 
 	const toast = useRef<Toast>(null);
+	const hasFetched = useRef(false);
 
 	useEffect(() => {
-		if (token && date) {
+		if (token && date && !hasFetched.current) {
+			hasFetched.current = true;
 			fetchMonthly();
 		}
 	}, [token, date]);
@@ -62,7 +70,7 @@ export const MonthlyPage: React.FC<MonthlyPageProps> = ({ items, token }) => {
 		}
 	};
 
-	const getItemName = (id: number) => items.find(i => i.id === id)?.name || `ID:${id}`;
+	const getItemName = (id: number) => items.find((item) => item.id === id)?.name || `ID:${id}`;
 
 	// データを分類
 	const fixedCosts = allTransactions.filter(t => !t.day);
@@ -87,7 +95,6 @@ export const MonthlyPage: React.FC<MonthlyPageProps> = ({ items, token }) => {
 	// 合計計算
 	const totalAll = allTransactions.reduce((sum, t) => sum + Number(t.amount), 0);
 	const totalFixed = fixedCosts.reduce((sum, t) => sum + Number(t.amount), 0);
-	const totalVariable = variableCosts.reduce((sum, t) => sum + Number(t.amount), 0);
 
 	// 固定費の金額編集
 	const handleFixedCostChange = async (tx: Transaction, newAmount: number) => {
@@ -169,21 +176,13 @@ export const MonthlyPage: React.FC<MonthlyPageProps> = ({ items, token }) => {
 	const fixedFooter = (
 		<ColumnGroup>
 			<Row>
-				<Column footer="小計" footerStyle={{ textAlign: 'left' }} />
+				<Column footer="小計" colSpan={2} footerStyle={{ textAlign: 'left' }} />
 				<Column footer={`¥${totalFixed.toLocaleString()}`} />
 			</Row>
 		</ColumnGroup>
 	);
 
-	const variableFooter = (
-		<ColumnGroup>
-			<Row>
-				<Column footer="小計" colSpan={3} footerStyle={{ textAlign: 'left' }} />
-				<Column footer={`¥${totalVariable.toLocaleString()}`} />
-				<Column footer="" />
-			</Row>
-		</ColumnGroup>
-	);
+
 
 	return (
 		<div className="grid">
@@ -214,6 +213,7 @@ export const MonthlyPage: React.FC<MonthlyPageProps> = ({ items, token }) => {
 				<Card title="固定費">
 					<DataTable value={fixedCosts} loading={loading} footerColumnGroup={fixedFooter} size="small" stripedRows emptyMessage="固定費データがありません">
 						<Column field="item_id" header="費目" body={(row) => getItemName(row.item_id)} />
+						<Column field="note" header="品目" body={(row) => row.note || '-'} />
 						<Column
 							field="amount"
 							header="金額"
@@ -241,21 +241,24 @@ export const MonthlyPage: React.FC<MonthlyPageProps> = ({ items, token }) => {
 					<DataTable
 						value={variableCosts}
 						loading={loading}
-						footerColumnGroup={variableFooter}
-						sortField="day"
-						sortOrder={-1}
-						removableSort
 						size="small"
 						stripedRows
 						emptyMessage="明細データがありません"
+						selectionMode="single"
+						onRowClick={(e) => {
+							const transaction = e.data as Transaction;
+							if (transaction) {
+								openEditDialog(transaction);
+							}
+						}}
+						rowClassName={() => "cursor-pointer hover:surface-100"}
 					>
-						<Column field="day" header="日" sortable style={{ width: '60px' }} />
-						<Column field="item_id" header="費目" sortable body={(row) => getItemName(row.item_id)} />
+						<Column field="date" header="日付" body={(rowData) =>
+							`${rowData.month}/${rowData.day} (${getDayLabel(new Date(Number(rowData.year), Number(rowData.month) - 1, Number(rowData.day)))})`
+						} />
+						<Column field="item_id" header="費目" body={(rowData) => getItemName(rowData.item_id)} />
 						<Column field="note" header="品目" />
-						<Column field="amount" header="金額" sortable body={(row) => `¥${Number(row.amount).toLocaleString()}`} />
-						<Column body={(row) => (
-							<Button icon="pi pi-pencil" text severity="info" onClick={() => openEditDialog(row)} />
-						)} style={{ width: '50px' }} />
+						<Column field="amount" header="金額" body={(rowData) => `¥${Number(rowData.amount).toLocaleString()}`} />
 					</DataTable>
 				</Card>
 			</div>

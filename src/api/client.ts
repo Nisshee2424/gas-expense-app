@@ -61,10 +61,6 @@ export const sendRequest = async (method: 'GET' | 'CREATE' | 'UPDATE' | 'DELETE'
 
 // API Wrapper Functions
 
-export const getItems = async () => {
-	return sendRequest('GET', 'items');
-}
-
 export const getRecentTransactions = async () => {
 	return sendRequest('GET', 'transactions/recent');
 }

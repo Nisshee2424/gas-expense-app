@@ -13,13 +13,14 @@ import { Toast } from 'primereact/toast';
 
 import { createTransaction, deleteTransaction, getRecentTransactions, updateTransaction } from '../api/client';
 import type { Item, Transaction } from '../types';
+import { items } from '../constants/items';
 
 interface HomePageProps {
 	items: Item[];
 	token: string;
 }
 
-export const HomePage: React.FC<HomePageProps> = ({ items, token }) => {
+export const HomePage: React.FC<HomePageProps> = ({ token }) => {
 	// 新規登録用
 	const [date, setDate] = useState<Date>(new Date());
 	const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
@@ -40,19 +41,24 @@ export const HomePage: React.FC<HomePageProps> = ({ items, token }) => {
 	const [notification, setNotification] = useState<string | null>(null);
 
 	const toast = useRef<Toast>(null);
+	const hasFetched = useRef(false);
 
 	useEffect(() => {
-		if (token) {
+		if (token && !hasFetched.current) {
+			hasFetched.current = true;
 			fetchRecent();
 		}
 	}, [token]);
 
 	const fetchRecent = async () => {
 		try {
+			setLoading(true);
 			const data = await getRecentTransactions();
 			setRecentTransactions(data);
 		} catch (e) {
 			console.error(e);
+		} finally {
+			setLoading(false);
 		}
 	};
 
@@ -63,7 +69,7 @@ export const HomePage: React.FC<HomePageProps> = ({ items, token }) => {
 	};
 
 	// 新規登録の入力が完了しているか
-	const isFormValid = selectedItemId !== null && amounts.reduce((s, a) => s + (a || 0), 0) > 0;
+	const isFormValid = selectedItemId !== null && amounts.reduce((s, a) => s + (a || 0), 0) > 0 && note.trim() !== '';
 
 	const handleAddAmount = () => {
 		setAmounts([...amounts, 0]);
@@ -165,16 +171,8 @@ export const HomePage: React.FC<HomePageProps> = ({ items, token }) => {
 	const getItemName = (id: number) => items.find(i => i.id === id)?.name || id;
 
 	const getDayLabel = (dateObj: Date) => {
-		const today = new Date();
-		today.setHours(0, 0, 0, 0);
-		const target = new Date(dateObj);
-		target.setHours(0, 0, 0, 0);
-		const diffTime = today.getTime() - target.getTime();
-		const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-		if (diffDays === 0) return '今日';
-		if (diffDays === 1) return '昨日';
-		if (diffDays === 2) return '一昨日';
-		return `${diffDays}日前`;
+		const days = ['日', '月', '火', '水', '木', '金', '土'];
+		return days[dateObj.getDay()];
 	};
 
 	return (
@@ -193,42 +191,18 @@ export const HomePage: React.FC<HomePageProps> = ({ items, token }) => {
 			<div className="col-12 md:col-6">
 				<Card title="新規登録">
 					<div className="field">
-						<label className="block mb-2">日付: {date && date.toLocaleDateString()} ({getDayLabel(date)})</label>
-						<div className="flex gap-2 mb-2">
-							<Button label="今日" size="small" outlined onClick={() => handleDateShortcut(0)} />
-							<Button label="昨日" size="small" outlined onClick={() => handleDateShortcut(1)} />
-							<Button label="一昨日" size="small" outlined onClick={() => handleDateShortcut(2)} />
-							<Button label="3日前" size="small" outlined onClick={() => handleDateShortcut(3)} />
+						<label className="block mb-2">1. 日付: {date && date.toLocaleDateString()} ({getDayLabel(date)})</label>
+						<div className="flex flex-wrap gap-2 mb-2">
+							<Button label="今日" size="small" outlined onClick={() => handleDateShortcut(0)} className="flex-shrink-0" />
+							<Button label="昨日" size="small" outlined onClick={() => handleDateShortcut(1)} className="flex-shrink-0" />
+							<Button label="一昨日" size="small" outlined onClick={() => handleDateShortcut(2)} className="flex-shrink-0" />
+							{/* <Button label="3日前" size="small" outlined onClick={() => handleDateShortcut(3)} className="flex-shrink-0" /> */}
 						</div>
 						<Calendar value={date} onChange={(e) => setDate(e.value as Date)} showIcon dateFormat="yy/mm/dd" />
 					</div>
 
 					<div className="field">
-						<label>費目</label>
-						<Dropdown
-							value={selectedItemId}
-							options={items}
-							optionLabel="name"
-							optionValue="id"
-							onChange={(e) => setSelectedItemId(e.value)}
-							placeholder="費目を選択"
-							className="w-full"
-							emptyMessage="読み込み中..."
-						/>
-					</div>
-
-					<div className="field">
-						<label>品目</label>
-						<InputText
-							value={note}
-							onChange={(e) => setNote(e.target.value)}
-							placeholder="品目を入力（任意）"
-							className="w-full"
-						/>
-					</div>
-
-					<div className="field">
-						<label>金額</label>
+						<label>2. 金額</label>
 						{amounts.map((amt, index) => (
 							<div key={index} className="flex gap-2 mb-2 align-items-center">
 								<InputNumber
@@ -250,12 +224,35 @@ export const HomePage: React.FC<HomePageProps> = ({ items, token }) => {
 						</div>
 					</div>
 
+					<div className="field">
+						<label>3. 費目</label>
+						<Dropdown
+							value={selectedItemId}
+							options={items}
+							optionLabel="name"
+							optionValue="id"
+							onChange={(e) => setSelectedItemId(e.value)}
+							placeholder={items.length === 0 ? "読み込み中..." : "費目を選択"}
+							className="w-full"
+							emptyMessage="利用可能な費目がありません"
+						/>
+					</div>
+
+					<div className="field">
+						<label>4. 品目</label>
+						<InputText
+							value={note}
+							onChange={(e) => setNote(e.target.value)}
+							placeholder="例) ミスド"
+							className="w-full"
+						/>
+					</div>
+
 					{/* 登録ボタン: 入力完了時のみ有効で橙色 */}
 					<Button
 						label="登録"
 						icon="pi pi-check"
 						onClick={handleSubmit}
-						loading={loading}
 						disabled={!isFormValid}
 						severity={isFormValid ? "warning" : undefined}
 						className={isFormValid ? "" : "p-button-secondary"}
@@ -266,14 +263,25 @@ export const HomePage: React.FC<HomePageProps> = ({ items, token }) => {
 			{/* 直近の明細 */}
 			<div className="col-12 md:col-6">
 				<Card title="直近の明細">
-					<DataTable value={recentTransactions} size="small" stripedRows>
-						<Column field="date" header="日付" body={(rowData) => `${rowData.year}/${rowData.month}/${rowData.day}`} />
+					<DataTable
+                        value={recentTransactions}
+                        loading={loading}
+                        size="small"
+                        stripedRows
+                        emptyMessage="明細データがありません"
+                        selectionMode="single"
+                        onRowClick={(e) => {
+                            const transaction = e.data as Transaction;
+                            if (transaction) {
+                                openEditDialog(transaction);
+                            }
+                        }}
+                        rowClassName={() => "cursor-pointer hover:surface-100"}
+                    >
+						<Column field="date" header="日付" body={(rowData) => `${rowData.month}/${rowData.day} (${getDayLabel(new Date(rowData.year, rowData.month - 1, rowData.day))})`} />
 						<Column field="item_id" header="費目" body={(rowData) => getItemName(rowData.item_id)} />
 						<Column field="note" header="品目" />
 						<Column field="amount" header="金額" body={(rowData) => `¥${Number(rowData.amount).toLocaleString()}`} />
-						<Column body={(rowData) => (
-							<Button icon="pi pi-pencil" text severity="info" onClick={() => openEditDialog(rowData)} />
-						)} style={{ width: '40px' }} />
 					</DataTable>
 				</Card>
 			</div>
@@ -285,9 +293,20 @@ export const HomePage: React.FC<HomePageProps> = ({ items, token }) => {
 				onHide={() => setEditDialogVisible(false)}
 				style={{ width: '90vw', maxWidth: '500px' }}
 			>
-				<div className="field">
+				<div className="field mt-3">
 					<label className="block mb-2">日付</label>
 					<Calendar value={editDate} onChange={(e) => setEditDate(e.value as Date)} showIcon dateFormat="yy/mm/dd" className="w-full" />
+				</div>
+
+				<div className="field">
+					<label>金額</label>
+					<InputNumber
+						value={editAmount}
+						onValueChange={(e) => setEditAmount(e.value || 0)}
+						placeholder="金額"
+						className="w-full"
+						useGrouping={true}
+					/>
 				</div>
 
 				<div className="field">
@@ -310,17 +329,6 @@ export const HomePage: React.FC<HomePageProps> = ({ items, token }) => {
 						onChange={(e) => setEditNote(e.target.value)}
 						placeholder="品目を入力（任意）"
 						className="w-full"
-					/>
-				</div>
-
-				<div className="field">
-					<label>金額</label>
-					<InputNumber
-						value={editAmount}
-						onValueChange={(e) => setEditAmount(e.value || 0)}
-						placeholder="金額"
-						className="w-full"
-						useGrouping={true}
 					/>
 				</div>
 
