@@ -11,6 +11,7 @@ import { items } from './constants/items';
 
 // pull request練習用のコメント
 // 適当なコメント２
+// 適当なコメント１
 
 import './index.css'; // App固有のCSSがあれば
 
