@@ -4,7 +4,6 @@ import { Button } from 'primereact/button';
 import { Calendar } from 'primereact/calendar';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
-import { InputNumber } from 'primereact/inputnumber';
 import { InputText } from 'primereact/inputtext';
 import { Dropdown } from 'primereact/dropdown';
 import { Dialog } from 'primereact/dialog';
@@ -218,17 +217,19 @@ export const MonthlyPage: React.FC<MonthlyPageProps> = ({ token }) => {
 							field="amount"
 							header="金額"
 							body={(row) => (
-								<InputNumber
-									value={Number(row.amount)}
-									onValueChange={(e) => {
-										if (e.value !== undefined && e.value !== null) {
-											handleFixedCostChange(row, e.value);
+								<InputText
+									value={row.amount ? row.amount.toString() : ''}
+									onChange={(e) => {
+										const value = e.target.value;
+										// 数字のみ許可（空文字列は許可）
+										if (value === '' || /^[0-9]+$/.test(value)) {
+											handleFixedCostChange(row, value === '' ? 0 : parseInt(value, 10));
 										}
 									}}
 									className="w-full"
-									useGrouping={true}
-									inputStyle={{ maxWidth: '120px' }}
-									inputMode="decimal"
+									style={{ maxWidth: '120px' }}
+									type="text"
+									inputMode="numeric"
 									pattern="[0-9]*"
 								/>
 							)}
@@ -302,13 +303,19 @@ export const MonthlyPage: React.FC<MonthlyPageProps> = ({ token }) => {
 
 				<div className="field">
 					<label>金額</label>
-					<InputNumber
-						value={editAmount}
-						onValueChange={(e) => setEditAmount(e.value || 0)}
+					<InputText
+						value={editAmount ? editAmount.toString() : ''}
+						onChange={(e) => {
+							const value = e.target.value;
+							// 数字のみ許可（空文字列は許可）
+							if (value === '' || /^[0-9]+$/.test(value)) {
+								setEditAmount(value === '' ? 0 : parseInt(value, 10));
+							}
+						}}
 						placeholder="金額"
 						className="w-full"
-						useGrouping={true}
-						inputMode="decimal"
+						type="text"
+						inputMode="numeric"
 						pattern="[0-9]*"
 					/>
 				</div>
