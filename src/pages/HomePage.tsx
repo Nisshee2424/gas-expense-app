@@ -205,17 +205,21 @@ export const HomePage: React.FC<HomePageProps> = ({ token }) => {
 						<label>2. 金額</label>
 						{amounts.map((amt, index) => (
 							<div key={index} className="flex gap-2 mb-2 align-items-center">
-								<InputNumber
-									value={amt}
-									onValueChange={(e) => {
-										const newAmounts = [...amounts];
-										newAmounts[index] = e.value || 0;
-										setAmounts(newAmounts);
+								<InputText
+									value={amt ? amt.toString() : ''}
+									onChange={(e) => {
+										const value = e.target.value;
+										// 数字のみ許可（空文字列は許可）
+										if (value === '' || /^[0-9]+$/.test(value)) {
+											const newAmounts = [...amounts];
+											newAmounts[index] = value === '' ? 0 : parseInt(value, 10);
+											setAmounts(newAmounts);
+										}
 									}}
 									placeholder="金額"
 									className="w-full"
-									useGrouping={true}
-									inputMode="decimal"
+									type="text"
+									inputMode="numeric"
 									pattern="[0-9]*"
 								/>
 							</div>

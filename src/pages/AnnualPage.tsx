@@ -3,7 +3,6 @@ import { Card } from 'primereact/card';
 import { Calendar } from 'primereact/calendar';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
-import { InputNumber } from 'primereact/inputnumber';
 import { Button } from 'primereact/button';
 import { Toast } from 'primereact/toast';
 import { ColumnGroup } from 'primereact/columngroup';
@@ -11,6 +10,7 @@ import { Row } from 'primereact/row';
 
 import { getAnnualSummary, saveBudget } from '../api/client';
 import type { AnnualSummaryItem } from '../types';
+import { InputText } from 'primereact/inputtext';
 
 interface AnnualPageProps {
 	token: string;
@@ -94,15 +94,18 @@ export const AnnualPage: React.FC<AnnualPageProps> = ({ token }) => {
 
 	const budgetEditor = (rowData: AnnualSummaryItem) => {
 		return (
-			<InputNumber
-				value={rowData.budget}
-				onValueChange={(e) => onBudgetChange(rowData, e.value || 0)}
-				mode="decimal"
-				minFractionDigits={0}
-				maxFractionDigits={0}
-				useGrouping={false}
-				inputStyle={{ width: '100px', textAlign: 'left' }}
-				inputMode="decimal"
+			<InputText
+				value={rowData.budget ? rowData.budget.toString() : ''}
+				onChange={(e) => {
+					const value = e.target.value;
+					// 数字のみ許可（空文字列は許可）
+					if (value === '' || /^[0-9]+$/.test(value)) {
+						onBudgetChange(rowData, value === '' ? 0 : parseInt(value, 10));
+					}
+				}}
+				style={{ width: '100px', textAlign: 'left' }}
+				type="text"
+				inputMode="numeric"
 				pattern="[0-9]*"
 			/>
 		);
