@@ -138,9 +138,9 @@ export const MonthlyPage: React.FC<MonthlyPageProps> = ({ token }) => {
 		const loadingNotification = showLoadingNotification('更新中...');
 		try {
 			await updateTransaction(editingTransaction.id, {
-				year: editDate.getFullYear(),
-				month: editDate.getMonth() + 1,
-				day: editDate.getDate(),
+				year: isFixedCost ? editingTransaction.year : editDate.getFullYear(),
+				month: isFixedCost ? editingTransaction.month : editDate.getMonth() + 1,
+				day: isFixedCost ? '' : editDate.getDate(), // 固定費の場合は空文字列
 				item_id: editItemId,
 				note: editNote,
 				amount: editAmount
